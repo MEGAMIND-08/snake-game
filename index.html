@@ -2,19 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ultimate Snake Game</title>
+<title>Snake Game – Mouth & Body</title>
 
 <style>
-:root {
-  --bg: #000;
-  --snake: #00ffd5;
-  --food: red;
-}
-
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--snake);
+  background: radial-gradient(circle, #020024, #000);
+  color: #00ffd5;
   font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
@@ -27,25 +21,16 @@ body {
 }
 
 canvas {
-  background: #111;
-  border: 3px solid var(--snake);
+  background: #000;
+  border: 3px solid #00ffd5;
+  box-shadow: 0 0 25px #00ffd5;
 }
 
 button {
-  padding: 6px 12px;
-  margin: 5px;
-  font-size: 14px;
+  margin: 6px;
+  padding: 8px 14px;
+  font-size: 15px;
   cursor: pointer;
-}
-
-.controls button {
-  width: 60px;
-  height: 40px;
-}
-
-.leaderboard {
-  margin-top: 10px;
-  font-size: 14px;
 }
 </style>
 </head>
@@ -53,93 +38,102 @@ button {
 <body>
 
 <div class="container">
-  <h2>🐍 Ultimate Snake</h2>
-
+  <h2>🐍 Snake with Mouth</h2>
   <canvas id="game" width="360" height="360"></canvas>
-
   <div>Score: <span id="score">0</span></div>
-
-  <button onclick="toggleTheme()">Change Theme</button>
   <button onclick="restart()">Restart</button>
-
-  <!-- Mobile Controls -->
-  <div class="controls">
-    <button onclick="setDir('UP')">⬆️</button><br>
-    <button onclick="setDir('LEFT')">⬅️</button>
-    <button onclick="setDir('DOWN')">⬇️</button>
-    <button onclick="setDir('RIGHT')">➡️</button>
-  </div>
-
-  <div class="leaderboard">
-    <h4>🏆 Top Scores</h4>
-    <ol id="board"></ol>
-  </div>
 </div>
-
-<!-- Sounds -->
-<audio id="eat" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
-<audio id="over" src="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3"></audio>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const box = 20;
 
-let snake, aiSnake, food, speedFood, dir, score, game;
-let theme = 0;
+let snake, food, dir, score, game;
 
 function start() {
   snake = [{x:180,y:180}];
-  aiSnake = [{x:0,y:0}];
+  food = randomFood();
   dir = "RIGHT";
   score = 0;
-  food = randFood();
-  speedFood = randFood();
   document.getElementById("score").innerText = score;
-  game = setInterval(draw, 150);
-  updateBoard();
+
+  clearInterval(game);
+  game = setInterval(draw, 140);
 }
 
-function randFood() {
+function randomFood() {
   return {
     x: Math.floor(Math.random()*18)*box,
     y: Math.floor(Math.random()*18)*box
   };
 }
 
-function setDir(d) {
-  if (d === "LEFT" && dir !== "RIGHT") dir = d;
-  if (d === "RIGHT" && dir !== "LEFT") dir = d;
-  if (d === "UP" && dir !== "DOWN") dir = d;
-  if (d === "DOWN" && dir !== "UP") dir = d;
+document.addEventListener("keydown", e => {
+  if (e.key==="ArrowLeft" && dir!=="RIGHT") dir="LEFT";
+  if (e.key==="ArrowRight" && dir!=="LEFT") dir="RIGHT";
+  if (e.key==="ArrowUp" && dir!=="DOWN") dir="UP";
+  if (e.key==="ArrowDown" && dir!=="UP") dir="DOWN";
+});
+
+function drawCircle(x,y,r,color){
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fill();
 }
 
-document.addEventListener("keydown", e => {
-  if (e.key.includes("Arrow")) setDir(e.key.replace("Arrow","").toUpperCase());
-});
+function drawHead(head){
+  const cx = head.x + box/2;
+  const cy = head.y + box/2;
+
+  // head
+  drawCircle(cx,cy,box/2,"#00ffd5");
+
+  // eyes
+  ctx.fillStyle="#000";
+  if (dir==="RIGHT" || dir==="LEFT") {
+    drawCircle(cx,cy-4,2,"#000");
+    drawCircle(cx,cy+4,2,"#000");
+  } else {
+    drawCircle(cx-4,cy,2,"#000");
+    drawCircle(cx+4,cy,2,"#000");
+  }
+
+  // mouth
+  ctx.strokeStyle="#000";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  if (dir==="RIGHT") {
+    ctx.arc(cx+4,cy,6,-0.5,0.5);
+  } else if (dir==="LEFT") {
+    ctx.arc(cx-4,cy,6,2.6,3.7);
+  } else if (dir==="UP") {
+    ctx.arc(cx,cy-4,6,3.6,5.8);
+  } else {
+    ctx.arc(cx,cy+4,6,0.6,2.6);
+  }
+  ctx.stroke();
+}
 
 function draw() {
   ctx.clearRect(0,0,360,360);
 
-  // Player snake
-  snake.forEach(s => {
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--snake");
-    ctx.fillRect(s.x,s.y,box,box);
-  });
+  // body
+  for (let i=1;i<snake.length;i++) {
+    drawCircle(
+      snake[i].x+box/2,
+      snake[i].y+box/2,
+      box/2-2,
+      "#00bfa5"
+    );
+  }
 
-  // AI snake
-  aiSnake.forEach(s => {
-    ctx.fillStyle = "#ff00ff";
-    ctx.fillRect(s.x,s.y,box,box);
-  });
+  // head
+  drawHead(snake[0]);
 
-  // Food
-  ctx.fillStyle = "red";
-  ctx.fillRect(food.x,food.y,box,box);
-
-  // Speed food
-  ctx.fillStyle = "yellow";
-  ctx.fillRect(speedFood.x,speedFood.y,box,box);
+  // food
+  drawCircle(food.x+box/2, food.y+box/2, box/2, "red");
 
   let head = {...snake[0]};
   if (dir==="LEFT") head.x-=box;
@@ -147,79 +141,33 @@ function draw() {
   if (dir==="UP") head.y-=box;
   if (dir==="DOWN") head.y+=box;
 
-  // Collision
-  if (head.x<0||head.y<0||head.x>=360||head.y>=360) return gameOver();
+  // collision
+  if (
+    head.x<0||head.y<0||
+    head.x>=360||head.y>=360||
+    snake.some(p=>p.x===head.x&&p.y===head.y)
+  ) {
+    clearInterval(game);
+    return;
+  }
 
   if (head.x===food.x && head.y===food.y) {
     score++;
-    document.getElementById("eat").play();
-    food = randFood();
-  } else if (head.x===speedFood.x && head.y===speedFood.y) {
-    score+=2;
-    document.getElementById("eat").play();
-    clearInterval(game);
-    game = setInterval(draw,100);
-    speedFood = randFood();
+    document.getElementById("score").innerText = score;
+    food = randomFood();
   } else {
     snake.pop();
   }
 
   snake.unshift(head);
-
-  // AI movement (simple)
-  let aiHead = {...aiSnake[0]};
-  if (aiHead.x < food.x) aiHead.x+=box;
-  else if (aiHead.x > food.x) aiHead.x-=box;
-  else if (aiHead.y < food.y) aiHead.y+=box;
-  else aiHead.y-=box;
-
-  aiSnake.unshift(aiHead);
-  aiSnake.pop();
 }
 
-function gameOver() {
-  document.getElementById("over").play();
-  clearInterval(game);
-  saveScore();
-}
-
-function restart() {
-  clearInterval(game);
+function restart(){
   start();
-}
-
-function toggleTheme() {
-  theme = (theme+1)%2;
-  if (theme===0) {
-    document.documentElement.style.setProperty("--bg","#000");
-    document.documentElement.style.setProperty("--snake","#00ffd5");
-  } else {
-    document.documentElement.style.setProperty("--bg","#1a0033");
-    document.documentElement.style.setProperty("--snake","#ff66ff");
-  }
-}
-
-function saveScore() {
-  let scores = JSON.parse(localStorage.getItem("scores")||"[]");
-  scores.push(score);
-  scores.sort((a,b)=>b-a);
-  scores = scores.slice(0,5);
-  localStorage.setItem("scores",JSON.stringify(scores));
-  updateBoard();
-}
-
-function updateBoard() {
-  let scores = JSON.parse(localStorage.getItem("scores")||"[]");
-  const list = document.getElementById("board");
-  list.innerHTML = "";
-  scores.forEach(s=>{
-    let li = document.createElement("li");
-    li.innerText = s;
-    list.appendChild(li);
-  });
 }
 
 start();
 </script>
+
 </body>
 </html>
